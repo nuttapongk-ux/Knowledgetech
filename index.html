@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Support Knowledge Base & Training Hub</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Sarabun (Popular Thai Font) -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f3f4f6;
+        }
+        
+        /* Admin Role Visibility Control */
+        body:not(.role-admin) .admin-only {
+            display: none !important;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .sidebar-item-active {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+            border-left: 4px solid #3b82f6;
+            color: #2563eb;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .modal-enter { animation: modalIn 0.2s ease-out forwards; }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
+
+        /* Article Content Images */
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            display: block;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased h-screen flex overflow-hidden">
+
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-20 hidden md:hidden glass"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 transform -translate-x-full md:translate-x-0 md:static w-64 bg-white border-r border-slate-200 flex flex-col z-30 transition-transform duration-300 ease-in-out shadow-lg md:shadow-none">
+        <div class="h-16 flex items-center px-6 border-b border-slate-100 justify-between">
+            <div class="flex items-center gap-2 text-blue-600 font-bold text-xl">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Tech<span class="text-slate-700">Hub</span></span>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-red-500"><i class="fa-solid fa-times"></i></button>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4">
+            <!-- Dynamic Menu Container -->
+            <div id="sidebar-menu-container">
+                <div class="px-6 py-4 text-center text-slate-400 text-xs">กำลังโหลดเมนู...</div>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-slate-200 bg-slate-50">
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=3b82f6&color=fff" alt="User" class="w-10 h-10 rounded-full">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <p class="text-sm font-semibold text-slate-700">Somchai (You)</p>
+                            <button onclick="openModal('menu-modal')" class="text-slate-400 hover:text-blue-600 admin-only transition-colors" title="จัดการเมนู">
+                                <i class="fa-solid fa-gear"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500">สถานะ: <span id="user-status-text" class="text-green-500 font-medium">Online</span></p>
+                    </div>
+                </div>
+                
+                <!-- Role Selector -->
+                <div class="mt-2 pt-2 border-t border-slate-200">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1 block">เลือกบทบาท (Switch Role)</label>
+                    <select id="role-selector" onchange="setRole(this.value)" class="text-xs text-slate-700 bg-white border border-slate-300 rounded px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer w-full shadow-sm">
+                        <option value="Viewer">👀 Viewer (อ่านเท่านั้น)</option>
+                        <option value="Admin">🔐 Admin (จัดการระบบ)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative">
+        <!-- Header -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10">
+            <div class="flex items-center gap-4 flex-1">
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-500 hover:text-blue-600"><i class="fa-solid fa-bars text-xl"></i></button>
+                
+                <div class="hidden md:flex flex-1 max-w-xl relative">
+                    <span class="absolute left-3 top-2.5 text-slate-400"><i class="fa-solid fa-search"></i></span>
+                    <input type="text" id="global-search-input" placeholder="ค้นหาบทความ, สคริปต์, หรือหมวดหมู่..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Role Badge Indicator -->
+                <div id="role-badge" class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200 shadow-sm">
+                    <i class="fa-regular fa-eye"></i> Viewer Mode
+                </div>
+
+                <button class="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
+                    <i class="fa-regular fa-bell text-lg"></i>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <button onclick="openModal('new-article-modal')" class="hidden md:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md shadow-blue-500/20 active:scale-95 admin-only">
+                    <i class="fa-solid fa-plus"></i> สร้างบทความใหม่
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div id="content-area" class="flex-1 overflow-y-auto p-6 md:p-8">
+            
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="fade-in block">
+                <div class="mb-8">
+                    <h1 class="text-2xl font-bold text-slate-800">ยินดีต้อนรับสู่ TechHub 👋</h1>
+                    <p class="text-slate-500">อัปเดตสถานะ Knowledge Base และข้อมูลสำคัญประจำวัน (Firebase Connected)</p>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm card-hover">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-blue-50 text-blue-600 p-3 rounded-lg"><i class="fa-solid fa-book-open"></i></div>
+                            <span class="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">+Live</span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800" id="total-articles-count">-</h3>
+                        <p class="text-sm text-slate-500">บทความทั้งหมด</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm card-hover">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-indigo-50 text-indigo-600 p-3 rounded-lg"><i class="fa-solid fa-eye"></i></div>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800">8.5k</h3>
+                        <p class="text-sm text-slate-500">ยอดวิวเดือนนี้</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm card-hover">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-amber-50 text-amber-600 p-3 rounded-lg"><i class="fa-solid fa-circle-exclamation"></i></div>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800">14</h3>
+                        <p class="text-sm text-slate-500">รอการตรวจสอบ</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm card-hover">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-purple-50 text-purple-600 p-3 rounded-lg"><i class="fa-solid fa-users-gear"></i></div>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-800">98%</h3>
+                        <p class="text-sm text-slate-500">CSAT Score (KB)</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                                <h3 class="font-bold text-slate-800">อัปเดตล่าสุด</h3>
+                                <button onclick="switchView('customer-support')" class="text-sm text-blue-600 hover:underline">ดูทั้งหมด</button>
+                            </div>
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
+                                    <tr>
+                                        <th class="px-6 py-4">หัวข้อ</th>
+                                        <th class="px-6 py-4">หมวดหมู่</th>
+                                        <th class="px-6 py-4">ผู้แก้ไข</th>
+                                        <th class="px-6 py-4">วันที่</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-updates-body" class="divide-y divide-slate-100 text-sm">
+                                    <tr><td colspan="4" class="px-6 py-4 text-center text-slate-400">Loading data...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Right Actions -->
+                    <div class="space-y-6">
+                        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
+                            <h3 class="font-bold text-lg mb-2">ประกาศสำคัญ</h3>
+                            <p class="text-blue-100 text-sm mb-4">เชื่อมต่อฐานข้อมูล Firebase เรียบร้อยแล้ว ข้อมูลทั้งหมดจะถูกบันทึกบน Cloud</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: CUSTOMER SUPPORT -->
+            <div id="view-customer-support" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">ข้อมูลตอบลูกค้า (External KB)</h1>
+                        <p class="text-slate-500">บทความและสคริปต์สำหรับส่งให้ลูกค้าโดยตรง</p>
+                    </div>
+                    <div class="flex gap-2">
+                         <button onclick="openModal('category-modal')" class="bg-white border border-slate-300 text-slate-600 px-4 py-2 rounded-lg text-sm hover:bg-slate-50 shadow-sm admin-only"><i class="fa-solid fa-tags mr-2"></i>จัดการหมวดหมู่</button>
+                         <button onclick="document.getElementById('category-filter-container').scrollIntoView({behavior: 'smooth'})" class="bg-white border border-slate-300 text-slate-600 px-4 py-2 rounded-lg text-sm hover:bg-slate-50 shadow-sm"><i class="fa-solid fa-filter mr-2"></i>Filter</button>
+                         <button onclick="exportKB()" class="bg-white border border-slate-300 text-slate-600 px-4 py-2 rounded-lg text-sm hover:bg-slate-50 shadow-sm text-green-700 hover:text-green-800"><i class="fa-solid fa-file-excel mr-2"></i>Export Excel</button>
+                         <button onclick="openModal('new-article-modal')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 shadow-sm admin-only"><i class="fa-solid fa-plus mr-2"></i>เพิ่ม FAQ</button>
+                    </div>
+                </div>
+
+                <div id="category-filter-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <!-- Dynamic -->
+                </div>
+
+                <div id="faq-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[300px]">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-700">คำถามที่พบบ่อย (FAQs)</h3>
+                        <span id="item-count-badge" class="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">Loading...</span>
+                    </div>
+                    <div id="faq-list-content">
+                        <!-- Items populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: SCRIPT TEMPLATES (NEW) -->
+            <div id="view-script-templates" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">Script Templates 💬</h1>
+                        <p class="text-slate-500">รวมประโยคตอบลูกค้าสำเร็จรูป (Canned Responses)</p>
+                    </div>
+                    <button onclick="openModal('script-modal')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 shadow-sm admin-only">
+                        <i class="fa-solid fa-plus mr-2"></i>เพิ่มสคริปต์
+                    </button>
+                </div>
+
+                <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide" id="script-category-filters">
+                    <button onclick="filterScripts('all')" class="px-4 py-1.5 rounded-full bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition-colors">All</button>
+                    <button onclick="filterScripts('General')" class="px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-bold hover:bg-green-200 transition-colors">General</button>
+                    <button onclick="filterScripts('Troubleshooting')" class="px-4 py-1.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold hover:bg-orange-200 transition-colors">Troubleshooting</button>
+                    <button onclick="filterScripts('Critical')" class="px-4 py-1.5 rounded-full bg-red-100 text-red-700 text-xs font-bold hover:bg-red-200 transition-colors">Critical</button>
+                    <button onclick="filterScripts('Closing')" class="px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold hover:bg-blue-200 transition-colors">Closing</button>
+                </div>
+
+                <div id="script-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Dynamic Content -->
+                     <div class="col-span-2 text-center text-slate-400 py-10">กำลังโหลดข้อมูล...</div>
+                </div>
+            </div>
+
+            <!-- Placeholders for other views -->
+            <div id="view-internal-training" class="hidden fade-in"><div class="mb-8"><h1 class="text-2xl font-bold text-slate-800">การอบรมพนักงาน (Internal Training)</h1></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">เนื้อหาจำลอง (Static)...</div></div></div>
+            <div id="view-search" class="hidden fade-in"><div class="mb-8"><h1 class="text-2xl font-bold text-slate-800">ค้นหาข้อมูล</h1><input type="text" class="w-full p-3 border rounded"></div></div>
+        </div>
+    </main>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-[70] flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-green-400 text-lg"></i>
+        <span id="toast-message" class="text-sm font-medium">บันทึกข้อมูลสำเร็จ</span>
+    </div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onclick="closeConfirmModal()"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm modal-enter">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10"><i class="fa-solid fa-triangle-exclamation text-red-600"></i></div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="confirm-title">ยืนยันการลบ</h3>
+                                <div class="mt-2"><p class="text-sm text-gray-500" id="confirm-message">คุณแน่ใจหรือไม่?</p></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button" id="confirm-btn-yes" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto">ยืนยันลบ</button>
+                        <button type="button" onclick="closeConfirmModal()" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">ยกเลิก</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW ARTICLE MODAL -->
+    <div id="new-article-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onclick="closeModal('new-article-modal')"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-xl modal-enter">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-slate-100">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10"><i class="fa-solid fa-pen-to-square text-blue-600"></i></div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-lg font-semibold leading-6 text-slate-900" id="modal-title">สร้างบทความใหม่</h3>
+                                <div class="mt-2"><p class="text-sm text-slate-500">กรอกข้อมูลให้ครบถ้วนเพื่อสร้าง Knowledge Base มาตรฐาน</p></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="col-span-2">
+                                <label for="title" class="block text-sm font-medium leading-6 text-slate-900">หัวข้อ (Title)</label>
+                                <div class="mt-2"><input type="text" id="title" class="block w-full rounded-md border-0 py-1.5 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-blue-600 sm:text-sm"></div>
+                            </div>
+                            <div>
+                                <label for="category" class="block text-sm font-medium leading-6 text-slate-900">หมวดหมู่</label>
+                                <select id="category" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-blue-600 sm:text-sm"></select>
+                            </div>
+                            <div>
+                                <label for="type" class="block text-sm font-medium leading-6 text-slate-900">ประเภท</label>
+                                <select id="type" class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-blue-600 sm:text-sm">
+                                    <option>Public (Customer)</option>
+                                    <option>Private (Internal)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-100 pt-4 space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-red-600 mb-1"><i class="fa-solid fa-circle-exclamation mr-1"></i> ปัญหาที่พบ (Issue)</label>
+                                <textarea id="input-issue" rows="2" class="block w-full rounded-md border-0 py-1.5 px-3 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-red-500 sm:text-sm" placeholder="อธิบายอาการ..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-bold text-blue-600 mb-1"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> แนวทางการแก้ไข (Resolution)</label>
+                                <textarea id="input-resolution" rows="3" class="block w-full rounded-md border-0 py-1.5 px-3 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-blue-500 sm:text-sm" placeholder="ขั้นตอนแก้ไข..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-green-600 mb-1"><i class="fa-solid fa-clipboard-check mr-1"></i> วิธีการตรวจสอบ (Verification)</label>
+                                <textarea id="input-verification" rows="2" class="block w-full rounded-md border-0 py-1.5 px-3 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-green-500 sm:text-sm" placeholder="วิธีเช็คผล..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700">Script ตอบลูกค้า</label>
+                                <textarea id="input-script" rows="2" class="mt-1 block w-full rounded-md border-0 py-1.5 px-3 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-slate-400 sm:text-sm bg-slate-50" placeholder="ประโยคสำเร็จรูป..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-100">
+                        <button type="button" onclick="saveArticle()" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">บันทึกบทความ</button>
+                        <button type="button" onclick="closeModal('new-article-modal')" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto">ยกเลิก</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT MODAL (NEW) -->
+    <div id="script-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onclick="closeModal('script-modal')"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg modal-enter">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-slate-100">
+                        <h3 class="text-lg font-semibold leading-6 text-slate-900" id="script-modal-title">เพิ่มสคริปต์ใหม่</h3>
+                    </div>
+                    <div class="px-6 py-4 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-slate-900">หัวข้อ (Topic)</label>
+                            <input type="text" id="script-title" class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-blue-600 sm:text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-slate-900">หมวดหมู่ (Category)</label>
+                            <select id="script-category" class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-blue-600 sm:text-sm">
+                                <option value="General">General</option>
+                                <option value="Troubleshooting">Troubleshooting</option>
+                                <option value="Critical">Critical</option>
+                                <option value="Closing">Closing</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-slate-900">ข้อความสคริปต์ (Content)</label>
+                            <textarea id="script-content" rows="4" class="mt-2 block w-full rounded-md border-0 py-1.5 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-blue-600 sm:text-sm font-mono text-xs"></textarea>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-100">
+                        <button type="button" onclick="saveScript()" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">บันทึก</button>
+                        <button type="button" onclick="closeModal('script-modal')" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto">ยกเลิก</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CATEGORY MODAL -->
+    <div id="category-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onclick="closeModal('category-modal')"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md modal-enter">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-slate-100">
+                        <h3 class="text-lg font-semibold leading-6 text-slate-900">จัดการหมวดหมู่</h3>
+                        <p class="text-sm text-slate-500 mt-1">เพิ่ม/ลบ/แก้ไข หมวดหมู่ Knowledge Base</p>
+                    </div>
+                    <div class="px-6 py-4">
+                        <div class="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">เพิ่มหมวดหมู่ใหม่</label>
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="new-cat-name" class="flex-1 rounded-md border-0 py-1.5 px-3 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-blue-600 sm:text-sm" placeholder="ชื่อหมวดหมู่...">
+                                <select id="new-cat-color" class="w-24 rounded-md border-0 py-1.5 pl-2 pr-1 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-blue-600 sm:text-sm">
+                                    <option value="blue">ฟ้า</option>
+                                    <option value="red">แดง</option>
+                                    <option value="green">เขียว</option>
+                                    <option value="orange">ส้ม</option>
+                                    <option value="purple">ม่วง</option>
+                                    <option value="gray">เทา</option>
+                                </select>
+                            </div>
+                            <button onclick="addNewCategory()" class="w-full bg-slate-800 text-white py-1.5 rounded text-sm hover:bg-slate-700 transition-colors">ยืนยันการเพิ่ม</button>
+                        </div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">รายชื่อหมวดหมู่ปัจจุบัน</label>
+                        <ul id="category-list" class="divide-y divide-slate-100 max-h-60 overflow-y-auto"></ul>
+                    </div>
+                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-100">
+                        <button type="button" onclick="closeModal('category-modal')" class="inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto">ปิดหน้าต่าง</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENU MANAGEMENT MODAL -->
+    <div id="menu-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onclick="closeModal('menu-modal')"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md modal-enter">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-slate-100">
+                        <h3 class="text-lg font-semibold leading-6 text-slate-900">จัดการเมนู (Menu Management)</h3>
+                        <p class="text-sm text-slate-500 mt-1">เปิด/ปิด การใช้งานเมนูต่างๆ ในระบบ (มีผลกับ Viewer)</p>
+                    </div>
+                    <div class="px-6 py-4">
+                        <ul id="menu-config-list" class="divide-y divide-slate-100">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-100">
+                        <button type="button" onclick="saveMenuConfig()" class="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto">บันทึกการตั้งค่า</button>
+                        <button type="button" onclick="closeModal('menu-modal')" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto">ยกเลิก</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, serverTimestamp, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Constants
+        const MENU_DEFS = [
+            { id: 'dashboard', label: 'ภาพรวม (Dashboard)', icon: 'fa-chart-pie', view: 'dashboard', section: 'main' },
+            { id: 'search', label: 'ค้นหาข้อมูล', icon: 'fa-magnifying-glass', view: 'search', section: 'main' },
+            { id: 'customer-support', label: 'ข้อมูลตอบลูกค้า (Ext)', icon: 'fa-headset', view: 'customer-support', section: 'kb' },
+            { id: 'internal-training', label: 'เทรนนิ่งพนักงาน (Int)', icon: 'fa-graduation-cap', view: 'internal-training', section: 'kb' },
+            { id: 'script-templates', label: 'Script Templates', icon: 'fa-file-code', view: 'script-templates', section: 'kb' }
+        ];
+
+        // Global functions defined first
+        window.switchView = function(viewName) {
+            if (!canAccessView(viewName)) {
+                window.showToast("เมนูนี้ถูกปิดใช้งาน (Admin Only)");
+                return;
+            }
+
+            const views = ['dashboard', 'customer-support', 'internal-training', 'search', 'script-templates'];
+            views.forEach(v => {
+                const el = document.getElementById('view-' + v);
+                if (el) el.classList.add('hidden');
+            });
+            const selectedEl = document.getElementById('view-' + viewName);
+            if (selectedEl) selectedEl.classList.remove('hidden');
+
+            document.querySelectorAll('nav a').forEach(a => {
+                a.classList.remove('sidebar-item-active', 'text-blue-600');
+                a.classList.add('text-slate-600');
+            });
+            
+            const targetId = MENU_DEFS.find(m => m.view === viewName)?.id || viewName;
+            const activeNav = document.getElementById('nav-' + targetId);
+            if (activeNav) {
+                activeNav.classList.add('sidebar-item-active');
+                activeNav.classList.remove('text-slate-600');
+            }
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar && !sidebar.classList.contains('-translate-x-full')) window.toggleSidebar();
+            }
+        };
+
+        function canAccessView(viewName) {
+            const menu = MENU_DEFS.find(m => m.view === viewName);
+            if (!menu) return true;
+            const isEnabled = window.menuConfig[menu.id] !== false;
+            const isAdmin = document.body.classList.contains('role-admin');
+            return isEnabled || isAdmin;
+        }
+
+        window.showToast = function(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        };
+
+        window.toggleSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        };
+
+        window.closeConfirmModal = function() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            window.confirmCallback = null;
+        };
+
+        window.toggleAccordion = function(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        };
+
+        window.copyToClipboard = function(text) {
+            const temp = document.createElement("textarea");
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand("copy");
+            document.body.removeChild(temp);
+            window.showToast("คัดลอกข้อความแล้ว");
+        };
+
+        // Firebase Logic
+        let firebaseConfig;
+        if (typeof __firebase_config !== 'undefined') {
+            try {
+                firebaseConfig = JSON.parse(__firebase_config);
+            } catch (e) {
+                console.error("Firebase config parse error", e);
+            }
+        }
+        
+        if (!firebaseConfig) {
+            firebaseConfig = {
+                apiKey: "AIzaSyAfal6grNtLApn1oiX8p0mbyb4TpsMYrDo",
+                authDomain: "gloy-8831a.firebaseapp.com",
+                databaseURL: "https://gloy-8831a-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "gloy-8831a",
+                storageBucket: "gloy-8831a.firebasestorage.app",
+                messagingSenderId: "920776916154",
+                appId: "1:920776916154:web:eef1247abf4e1d77c89683",
+                measurementId: "G-34F6XB9S9T"
+            };
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const CAT_COLLECTION = `artifacts/${appId}/public/data/categories`;
+        const ART_COLLECTION = `artifacts/${appId}/public/data/articles`;
+        const SCRIPT_COLLECTION = `artifacts/${appId}/public/data/scripts`;
+        const SETTINGS_COLLECTION = `artifacts/${appId}/public/data/settings`;
+
+        let categoriesData = [];
+        let articlesData = [];
+        let scriptsData = [];
+        window.menuConfig = {};
+        let currentUserRole = 'Viewer';
+        let currentEditingId = null;
+        window.confirmCallback = null;
+
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.error("Auth Error:", e);
+                window.showToast("Authentication Failed: " + e.message);
+            }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setupCategoryListener();
+                setupArticleListener();
+                setupMenuListener();
+                setupScriptListener();
+            }
+        });
+
+        function setupMenuListener() {
+            onSnapshot(doc(db, SETTINGS_COLLECTION, 'menus'), (docSnap) => {
+                if (docSnap.exists()) {
+                    window.menuConfig = docSnap.data();
+                } else {
+                    MENU_DEFS.forEach(m => window.menuConfig[m.id] = true);
+                }
+                renderSidebar();
+            });
+        }
+
+        function setupCategoryListener() {
+            onSnapshot(collection(db, CAT_COLLECTION), (snapshot) => {
+                categoriesData = [];
+                snapshot.forEach(doc => categoriesData.push({ id: doc.id, ...doc.data() }));
+                if(categoriesData.length === 0) seedCategories();
+                else updateCategoryUI();
+            });
+        }
+
+        function setupArticleListener() {
+            onSnapshot(collection(db, ART_COLLECTION), (snapshot) => {
+                articlesData = [];
+                snapshot.forEach(doc => articlesData.push({ id: doc.id, ...doc.data() }));
+                updateArticleUI();
+                updateDashboardUI();
+            });
+        }
+
+        function setupScriptListener() {
+            onSnapshot(collection(db, SCRIPT_COLLECTION), (snapshot) => {
+                scriptsData = [];
+                snapshot.forEach(doc => scriptsData.push({ id: doc.id, ...doc.data() }));
+                if(scriptsData.length === 0) seedScripts();
+                else renderScriptList();
+            });
+        }
+
+        async function seedScripts() {
+            const seed = [
+                { title: 'ทักทาย (Greeting)', category: 'General', content: 'สวัสดีครับ/ค่ะ ทีมงาน TechHub ยินดีให้บริการครับ มีอะไรให้ช่วยดูแลครับ?' },
+                { title: 'ขออภัยระบบขัดข้อง', category: 'Critical', content: 'ต้องขออภัยในความไม่สะดวกครับ ขณะนี้ระบบเกิดเหตุขัดข้องชั่วคราว ทีมงานกำลังเร่งแก้ไขครับ' },
+                { title: 'แจ้งปิดเคส', category: 'Closing', content: 'ขอบคุณที่ใช้บริการ TechHub ครับ หากมีปัญหาเพิ่มเติมสอบถามได้ตลอด 24 ชม. ครับ' }
+            ];
+            for (const s of seed) await addDoc(collection(db, SCRIPT_COLLECTION), { ...s, updatedAt: serverTimestamp() });
+        }
+
+        async function seedCategories() {
+            const seed = [
+                { name: 'Internet/Network', color: 'blue', icon: 'fa-wifi' },
+                { name: 'Billing/Payment', color: 'red', icon: 'fa-file-invoice-dollar' },
+                { name: 'Hardware Setup', color: 'orange', icon: 'fa-laptop-code' },
+                { name: 'Account Security', color: 'purple', icon: 'fa-user-shield' },
+                { name: 'Software', color: 'green', icon: 'fa-cube' },
+                { name: 'Internal Policy', color: 'gray', icon: 'fa-book' }
+            ];
+            for (const c of seed) await addDoc(collection(db, CAT_COLLECTION), c);
+        }
+
+        function renderSidebar() {
+            const container = document.getElementById('sidebar-menu-container');
+            if(!container) return;
+
+            const mainItems = MENU_DEFS.filter(m => m.section === 'main');
+            const kbItems = MENU_DEFS.filter(m => m.section === 'kb');
+            const isAdmin = document.body.classList.contains('role-admin');
+
+            const createMenuHTML = (items) => {
+                return items.map(m => {
+                    const isEnabled = window.menuConfig[m.id] !== false;
+                    if(!isEnabled && !isAdmin) return ''; 
+
+                    let activeClass = ''; 
+                    let iconStatus = m.icon;
+                    let labelStatus = m.label;
+                    let textClass = 'text-slate-600'; 
+
+                    return `<li>
+                        <a href="#" id="nav-${m.id}" onclick="switchView('${m.view}')" class="flex items-center gap-3 px-6 py-3 text-sm font-medium hover:bg-slate-50 transition-colors ${activeClass} ${textClass}">
+                            <i class="fa-solid ${iconStatus} w-5"></i> ${labelStatus}
+                        </a>
+                    </li>`;
+                }).join('');
+            };
+
+            container.innerHTML = `
+                <div class="px-4 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">เมนูหลัก</div>
+                <ul class="space-y-1">${createMenuHTML(mainItems)}</ul>
+                <div class="px-4 mt-6 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">คลังความรู้ (Knowledge)</div>
+                <ul class="space-y-1">${createMenuHTML(kbItems)}</ul>
+            `;
+            
+            // Highlight current view
+            const activeView = document.querySelector('div[id^="view-"]:not(.hidden)')?.id?.replace('view-', '');
+            if(activeView) {
+                const menuId = MENU_DEFS.find(m => m.view === activeView)?.id || activeView;
+                const el = document.getElementById('nav-' + menuId);
+                if(el) {
+                    el.classList.add('sidebar-item-active');
+                    el.classList.remove('text-slate-600');
+                }
+            }
+        }
+
+        window.saveMenuConfig = async function() {
+            if (currentUserRole !== 'Admin') return;
+            const newConfig = {};
+            MENU_DEFS.forEach(m => {
+                const checkbox = document.getElementById(`toggle-${m.id}`);
+                if(checkbox) newConfig[m.id] = checkbox.checked;
+            });
+            await setDoc(doc(db, SETTINGS_COLLECTION, 'menus'), newConfig);
+            window.closeModal('menu-modal');
+            window.showToast("บันทึกการตั้งค่าเมนูแล้ว");
+        };
+
+        const colorMap = {
+            blue: 'bg-blue-100 text-blue-700', red: 'bg-red-100 text-red-700', orange: 'bg-orange-100 text-orange-700',
+            green: 'bg-green-100 text-green-700', purple: 'bg-purple-100 text-purple-700', gray: 'bg-gray-100 text-gray-700'
+        };
+        const bgDotMap = {
+            blue: 'bg-blue-500', red: 'bg-red-500', orange: 'bg-orange-500', green: 'bg-green-500', purple: 'bg-purple-500', gray: 'bg-gray-500'
+        };
+        const iconMap = {
+            blue: 'fa-wifi', red: 'fa-file-invoice-dollar', orange: 'fa-laptop-code', green: 'fa-cube', purple: 'fa-user-shield', gray: 'fa-book'
+        };
+
+        function updateCategoryUI() {
+            renderCategoryFilters();
+            renderCategoryOptions();
+            renderCategoryList();
+        }
+
+        window.renderCategoryFilters = function(activeCategory = 'all') {
+            const container = document.getElementById('category-filter-container');
+            if(!container) return;
+            
+            const getButtonClass = (catName) => {
+                const isActive = catName === activeCategory;
+                return `p-4 border rounded-lg transition-all text-center fade-in group focus:outline-none w-full ${isActive ? "bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-200 shadow-sm" : "bg-white border-slate-200 hover:border-blue-400 hover:text-blue-600"}`;
+            };
+
+            let html = `
+                <button onclick="filterItems('all')" class="${getButtonClass('all')}">
+                    <i class="fa-solid fa-layer-group text-2xl mb-2 ${activeCategory === 'all' ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-500'}"></i>
+                    <div class="font-semibold text-sm">ทั้งหมด (All)</div>
+                </button>
+            `;
+
+            html += categoriesData.map(cat => `
+                <button onclick="filterItems('${cat.name.replace(/'/g, "\\'")}')" class="${getButtonClass(cat.name)}">
+                    <i class="fa-solid ${cat.icon || iconMap[cat.color] || 'fa-tag'} text-2xl mb-2 ${activeCategory === cat.name ? `text-${cat.color}-600` : `text-slate-400 group-hover:text-${cat.color}-500`}"></i>
+                    <div class="font-semibold text-sm">${cat.name}</div>
+                </button>
+            `).join('');
+            container.innerHTML = html;
+        }
+
+        function renderCategoryOptions() {
+            const select = document.getElementById('category');
+            if(select) select.innerHTML = categoriesData.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+        }
+
+        window.renderCategoryList = function() {
+            const list = document.getElementById('category-list');
+            if(!list) return;
+            list.innerHTML = categoriesData.map(cat => `
+                <li id="cat-item-${cat.id}" class="py-3 px-2 flex justify-between items-center group hover:bg-slate-50 rounded transition-colors">
+                    <div class="flex items-center gap-3 w-full mr-2">
+                        <span class="w-3 h-3 rounded-full ${bgDotMap[cat.color] || 'bg-gray-500'} inline-block shadow-sm flex-shrink-0"></span>
+                        <span class="text-sm text-slate-700 font-medium cat-name-text">${cat.name}</span>
+                    </div>
+                    <div class="flex gap-1 admin-only">
+                        <button onclick="enableInlineEdit('${cat.id}', '${cat.name}', '${cat.color}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="confirmRemoveCategory('${cat.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md" title="ลบ"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </li>
+            `).join('');
+            updateAdminVisibility();
+        }
+
+        function updateArticleUI(filterCat = 'all') {
+            const container = document.getElementById('faq-list-content');
+            if(!container) return;
+
+            let filtered = articlesData;
+            if(filterCat !== 'all') filtered = articlesData.filter(a => a.category === filterCat);
+            
+            const searchVal = document.getElementById('global-search-input').value.toLowerCase();
+            if(searchVal) {
+                filtered = filtered.filter(a => a.title.toLowerCase().includes(searchVal));
+            }
+
+            const countBadge = document.getElementById('item-count-badge');
+            const totalCount = document.getElementById('total-articles-count');
+            
+            if (countBadge) countBadge.innerText = `แสดงผล: ${filtered.length} รายการ`;
+            if (totalCount) totalCount.innerText = articlesData.length;
+
+            container.innerHTML = filtered.map(item => {
+                const catObj = categoriesData.find(c => c.name === item.category);
+                const badgeClass = colorMap[catObj ? catObj.color : 'gray'];
+                
+                // Conditional Rendering
+                const scriptHtml = (item.script && item.script.trim()) ? `
+                    <div class="bg-blue-50 p-3 rounded border border-blue-100 text-blue-800 mt-4 mb-3">
+                        <strong>Script ตอบลูกค้า:</strong> <span class="script-content">"${item.script}"</span>
+                        <button class="ml-2 text-xs bg-white border border-blue-200 px-2 py-1 rounded hover:bg-blue-100" onclick="copyToClipboard('${item.script.substring(0, 30)}...')">Copy</button>
+                    </div>` : '';
+
+                let issueHtml = '';
+                if(item.issue && item.issue.trim()) {
+                    issueHtml = `<div><h4 class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-circle-exclamation text-red-500 mr-2"></i>ปัญหาที่พบ</h4><div class="article-content">${item.issue.replace(/\n/g, '<br>')}</div></div>`;
+                }
+
+                let resolutionHtml = '';
+                if(item.resolution && item.resolution.trim()) {
+                    resolutionHtml = `<div><h4 class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-screwdriver-wrench text-blue-500 mr-2"></i>แนวทางการแก้ไข</h4><div class="article-content"><ul class="list-disc pl-5 space-y-1">${item.resolution.split('\n').map(l=>`<li>${l}</li>`).join('')}</ul></div></div>`;
+                }
+
+                let verificationHtml = '';
+                if(item.verification && item.verification.trim()) {
+                    verificationHtml = `<div><h4 class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-clipboard-check text-green-500 mr-2"></i>วิธีการตรวจสอบ</h4><div class="article-content">${item.verification.replace(/\n/g, '<br>')}</div></div>`;
+                }
+                
+                return `
+                <div class="faq-item border-b border-slate-100 bg-white" data-id="${item.id}">
+                    <button onclick="toggleAccordion('${item.id}')" class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-slate-50 focus:outline-none">
+                        <span class="font-medium text-slate-700">${item.title}</span>
+                        <i id="icon-${item.id}" class="fa-solid fa-chevron-down text-slate-400 transition-transform"></i>
+                    </button>
+                    <div id="${item.id}" class="hidden px-6 py-4 bg-slate-50 text-slate-600 text-sm leading-relaxed border-t border-slate-100">
+                        <div class="space-y-4">
+                            <div class="mb-2"><span class="${badgeClass} px-2 py-1 rounded text-xs inline-block category-badge">${item.category}</span></div>
+                            ${issueHtml}
+                            ${resolutionHtml}
+                            ${verificationHtml}
+                        </div>
+                        ${scriptHtml}
+                        <div class="flex gap-2 mt-4 pt-3 border-t border-slate-200 admin-only">
+                            <button onclick="editFAQ('${item.id}')" class="text-xs flex items-center gap-1 text-slate-500 hover:text-blue-600"><i class="fa-solid fa-pen"></i> แก้ไข</button>
+                            <button onclick="deleteFAQ('${item.id}')" class="text-xs flex items-center gap-1 text-slate-500 hover:text-red-600"><i class="fa-solid fa-trash"></i> ลบ</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            updateAdminVisibility();
+        }
+
+        // --- SCRIPT TEMPLATE LOGIC ---
+        window.renderScriptList = function(filter = 'all') {
+            const container = document.getElementById('script-list-container');
+            if (!container) return;
+
+            let filteredScripts = scriptsData;
+            // Filter by category chip
+            if(filter !== 'all') {
+                filteredScripts = scriptsData.filter(s => s.category === filter);
+            }
+            // Filter by global search
+            const searchVal = document.getElementById('global-search-input').value.toLowerCase();
+            if(searchVal) {
+                filteredScripts = filteredScripts.filter(s => s.title.toLowerCase().includes(searchVal) || s.content.toLowerCase().includes(searchVal));
+            }
+
+            // Update UI
+            if(filteredScripts.length === 0) {
+                container.innerHTML = '<div class="col-span-2 text-center text-slate-400 py-10">ไม่พบข้อมูล</div>';
+                return;
+            }
+
+            container.innerHTML = filteredScripts.map(script => {
+                let badgeColor = 'bg-gray-100 text-gray-700';
+                if(script.category === 'General') badgeColor = 'bg-green-100 text-green-700';
+                if(script.category === 'Troubleshooting') badgeColor = 'bg-orange-100 text-orange-700';
+                if(script.category === 'Critical') badgeColor = 'bg-red-100 text-red-700';
+                if(script.category === 'Closing') badgeColor = 'bg-blue-100 text-blue-700';
+
+                return `
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative group">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-700">${script.title}</h3>
+                        <span class="${badgeColor} px-2 py-1 rounded text-xs">${script.category}</span>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded border border-slate-100 text-sm text-slate-600 mb-4 font-mono whitespace-pre-wrap">${script.content}</div>
+                    <button onclick="copyToClipboard('${script.content.replace(/\n/g, '\\n').replace(/'/g, "\\'")}')" class="w-full flex items-center justify-center gap-2 border border-blue-200 text-blue-600 py-2 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium">
+                        <i class="fa-regular fa-copy"></i> คัดลอก
+                    </button>
+                    
+                    <div class="absolute top-4 right-14 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity admin-only">
+                        <button onclick="editScript('${script.id}')" class="p-1 text-slate-400 hover:text-blue-600 bg-white rounded shadow-sm border border-slate-100"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteScript('${script.id}')" class="p-1 text-slate-400 hover:text-red-600 bg-white rounded shadow-sm border border-slate-100"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+            updateAdminVisibility();
+        };
+
+        window.filterScripts = function(filter) {
+            window.renderScriptList(filter);
+            // Visual feedback for filter buttons could be added here
+        };
+
+        window.saveScript = async function() {
+            if (!auth.currentUser) return;
+            const title = document.getElementById('script-title').value.trim();
+            const category = document.getElementById('script-category').value;
+            const content = document.getElementById('script-content').value.trim();
+
+            if(!title || !content) {
+                window.showToast('กรุณากรอกข้อมูลให้ครบ');
+                return;
+            }
+
+            const data = { title, category, content, updatedAt: serverTimestamp() };
+
+            if(currentEditingId) {
+                await updateDoc(doc(db, SCRIPT_COLLECTION, currentEditingId), data);
+                window.showToast('อัปเดตสคริปต์แล้ว');
+            } else {
+                await addDoc(collection(db, SCRIPT_COLLECTION), data);
+                window.showToast('เพิ่มสคริปต์ใหม่แล้ว');
+            }
+            window.closeModal('script-modal');
+        };
+
+        window.deleteScript = function(id) {
+            window.showConfirm('ลบสคริปต์', 'ต้องการลบสคริปต์นี้หรือไม่?', async () => {
+                if (!auth.currentUser) return;
+                await deleteDoc(doc(db, SCRIPT_COLLECTION, id));
+                window.showToast('ลบสคริปต์แล้ว');
+            });
+        };
+
+        window.editScript = function(id) {
+            const item = scriptsData.find(s => s.id === id);
+            if(!item) return;
+            document.getElementById('script-title').value = item.title;
+            document.getElementById('script-category').value = item.category;
+            document.getElementById('script-content').value = item.content;
+            document.getElementById('script-modal-title').innerText = 'แก้ไขสคริปต์';
+            currentEditingId = id;
+            window.openModal('script-modal');
+        };
+
+
+        function updateDashboardUI() {
+            const tbody = document.getElementById('recent-updates-body');
+            if(!tbody) return;
+            const sorted = [...articlesData].sort((a,b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0)).slice(0, 5);
+            tbody.innerHTML = sorted.map(item => {
+                const catObj = categoriesData.find(c => c.name === item.category);
+                const badgeClass = colorMap[catObj ? catObj.color : 'gray'];
+                const date = item.updatedAt ? new Date(item.updatedAt.seconds * 1000).toLocaleDateString('th-TH') : 'Recently';
+                return `
+                <tr class="hover:bg-slate-50 transition-colors cursor-pointer">
+                    <td class="px-6 py-4 font-medium text-slate-700">${item.title}</td>
+                    <td class="px-6 py-4"><span class="${badgeClass} px-2 py-1 rounded text-xs">${item.category}</span></td>
+                    <td class="px-6 py-4 flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-slate-200"></div> Admin</td>
+                    <td class="px-6 py-4 text-slate-500">${date}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- GLOBAL ACTIONS ---
+        window.filterItems = function(category) {
+            updateArticleUI(category);
+            renderCategoryFilters(category);
+        };
+
+        window.addNewCategory = async function() {
+            if (!auth.currentUser) return;
+            const name = document.getElementById('new-cat-name').value.trim();
+            const color = document.getElementById('new-cat-color').value;
+            if(!name) { window.showToast('ระบุชื่อหมวดหมู่'); return; }
+            await addDoc(collection(db, CAT_COLLECTION), { name, color, icon: 'fa-tag' });
+            document.getElementById('new-cat-name').value = '';
+            window.showToast('เพิ่มหมวดหมู่แล้ว');
+        };
+
+        window.confirmRemoveCategory = function(id) {
+            window.showConfirm('ลบหมวดหมู่', 'คุณต้องการลบหมวดหมู่นี้หรือไม่?', async () => {
+                if (!auth.currentUser) return;
+                await deleteDoc(doc(db, CAT_COLLECTION, id));
+                window.showToast('ลบหมวดหมู่แล้ว');
+            });
+        };
+
+        window.enableInlineEdit = function(id, name, color) {
+            if (currentUserRole !== 'Admin') return;
+            const li = document.getElementById(`cat-item-${id}`);
+            li.innerHTML = `
+                <div class="flex items-center gap-2 w-full">
+                    <span class="w-3 h-3 rounded-full ${bgDotMap[color]} inline-block flex-shrink-0"></span>
+                    <input type="text" id="edit-cat-input-${id}" class="flex-1 text-sm border-b border-blue-500 focus:outline-none bg-transparent px-1" value="${name}">
+                </div>
+                <button onclick="saveInlineEdit('${id}')" class="ml-2 p-1.5 text-green-600 hover:bg-green-50 rounded-md"><i class="fa-solid fa-check"></i></button>
+                <button onclick="renderCategoryList()" class="ml-1 p-1.5 text-slate-400 hover:bg-slate-100 rounded-md"><i class="fa-solid fa-xmark"></i></button>
+            `;
+        };
+
+        window.saveInlineEdit = async function(id) {
+            if (!auth.currentUser) return;
+            const val = document.getElementById(`edit-cat-input-${id}`).value.trim();
+            if(val) {
+                await updateDoc(doc(db, CAT_COLLECTION, id), { name: val });
+                window.showToast('แก้ไขชื่อสำเร็จ');
+            }
+        };
+
+        window.saveArticle = async function() {
+            if (!auth.currentUser) return;
+            const title = document.getElementById('title').value;
+            if(!title) { window.showToast('ระบุหัวข้อ'); return; }
+            
+            const data = {
+                title,
+                category: document.getElementById('category').value,
+                type: document.getElementById('type').value,
+                issue: document.getElementById('input-issue').value,
+                resolution: document.getElementById('input-resolution').value,
+                verification: document.getElementById('input-verification').value,
+                script: document.getElementById('input-script').value,
+                updatedAt: serverTimestamp()
+            };
+
+            if(currentEditingId) {
+                await updateDoc(doc(db, ART_COLLECTION, currentEditingId), data);
+                window.showToast('อัปเดตบทความแล้ว');
+            } else {
+                await addDoc(collection(db, ART_COLLECTION), data);
+                window.showToast('สร้างบทความใหม่แล้ว');
+            }
+            window.closeModal('new-article-modal');
+            window.switchView('customer-support');
+        };
+
+        window.deleteFAQ = function(id) {
+            window.showConfirm('ยืนยันลบ', 'ต้องการลบบทความนี้?', async () => {
+                if (!auth.currentUser) return;
+                await deleteDoc(doc(db, ART_COLLECTION, id));
+                window.showToast('ลบบทความแล้ว');
+            });
+        };
+
+        window.editFAQ = function(id) {
+            const item = articlesData.find(a => a.id === id);
+            if(!item) return;
+            
+            document.getElementById('title').value = item.title || '';
+            document.getElementById('category').value = item.category || '';
+            document.getElementById('type').value = item.type || 'Public (Customer)';
+            document.getElementById('input-issue').value = item.issue || '';
+            document.getElementById('input-resolution').value = item.resolution || '';
+            document.getElementById('input-verification').value = item.verification || '';
+            document.getElementById('input-script').value = item.script || '';
+            
+            document.getElementById('modal-title').innerText = "แก้ไขบทความ";
+            currentEditingId = id;
+            window.openModal('new-article-modal');
+        };
+
+        window.exportKB = function() {
+            const data = articlesData.map(a => ({
+                "หัวข้อ": a.title, "หมวดหมู่": a.category, "ปัญหา": a.issue, "การแก้ไข": a.resolution
+            }));
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "KB Export");
+            XLSX.writeFile(wb, 'TechHub_KB.xlsx');
+        };
+
+        window.setRole = function(role) {
+            currentUserRole = role;
+            localStorage.setItem('user_role', role);
+            
+            const badge = document.getElementById('role-badge');
+            
+            if(role === 'Admin') {
+                document.body.classList.add('role-admin');
+                window.showToast('สลับใช้งานในฐานะ: Admin');
+                if(badge) {
+                    badge.className = 'hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 shadow-sm fade-in';
+                    badge.innerHTML = '<i class="fa-solid fa-user-shield"></i> Admin Mode';
+                }
+            } else {
+                document.body.classList.remove('role-admin');
+                window.showToast('สลับใช้งานในฐานะ: Viewer');
+                if(badge) {
+                    badge.className = 'hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold border border-slate-200 shadow-sm fade-in';
+                    badge.innerHTML = '<i class="fa-regular fa-eye"></i> Viewer Mode';
+                }
+            }
+            updateAdminVisibility();
+            renderSidebar(); // Re-render sidebar to update hidden statuses
+            renderScriptList(); // Re-render scripts to update button visibility
+        };
+
+        function updateAdminVisibility() {
+            const role = document.body.classList.contains('role-admin');
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = role ? '' : 'none';
+            });
+        }
+
+        window.openModal = (id) => {
+            if(id === 'new-article-modal') {
+                if(document.getElementById('modal-title').innerText !== "แก้ไขบทความ") {
+                    currentEditingId = null;
+                    document.getElementById('title').value = '';
+                    document.getElementById('input-issue').value = '';
+                    document.getElementById('input-resolution').value = '';
+                    document.getElementById('input-verification').value = '';
+                    document.getElementById('input-script').value = '';
+                }
+            }
+            else if(id === 'script-modal') {
+                if(document.getElementById('script-modal-title').innerText !== "แก้ไขสคริปต์") {
+                    currentEditingId = null;
+                    document.getElementById('script-title').value = '';
+                    document.getElementById('script-content').value = '';
+                    document.getElementById('script-category').selectedIndex = 0;
+                }
+            }
+            // Populate menu config modal
+            if(id === 'menu-modal') {
+                const list = document.getElementById('menu-config-list');
+                list.innerHTML = MENU_DEFS.map(m => {
+                    const isChecked = window.menuConfig[m.id] !== false; // Default true
+                    return `
+                    <li class="py-3 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-slate-100 rounded text-slate-500"><i class="fa-solid ${m.icon}"></i></div>
+                            <span class="text-sm font-medium text-slate-700">${m.label}</span>
+                        </div>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle" id="toggle-${m.id}" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300" ${isChecked ? 'checked' : ''}/>
+                            <label for="toggle-${m.id}" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 cursor-pointer"></label>
+                        </div>
+                    </li>`;
+                }).join('');
+            }
+
+            document.getElementById(id).classList.remove('hidden');
+            if(id === 'category-modal') renderCategoryList();
+        };
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.add('hidden');
+            // Reset script modal title on close
+            if(id === 'script-modal') {
+                document.getElementById('script-modal-title').innerText = "เพิ่มสคริปต์ใหม่";
+            }
+        };
+
+        window.showConfirm = function(title, message, callback) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            window.confirmCallback = callback;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        };
+
+        document.getElementById('confirm-btn-yes').onclick = function() {
+            if(window.confirmCallback) window.confirmCallback();
+            window.closeConfirmModal();
+        };
+
+        document.getElementById('global-search-input').addEventListener('input', (e) => {
+            if (!document.getElementById('view-customer-support').classList.contains('hidden')) {
+                updateArticleUI();
+            } else if (!document.getElementById('view-script-templates').classList.contains('hidden')) {
+                renderScriptList();
+            }
+        });
+        
+        // Initialize Role State
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedRole = localStorage.getItem('user_role') || 'Viewer';
+            const selector = document.getElementById('role-selector');
+            if(selector) selector.value = savedRole;
+            window.setRole(savedRole); // Apply initial state
+        });
+
+    </script>
+</body>
+</html>
