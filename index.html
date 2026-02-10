@@ -656,12 +656,20 @@
             });
         }
 
+        let isFirstCatLoad = true;
         function setupCategoryListener() {
             onSnapshot(collection(db, CAT_COLLECTION), (snapshot) => {
                 categoriesData = [];
                 snapshot.forEach(doc => categoriesData.push({ id: doc.id, ...doc.data() }));
-                if(categoriesData.length === 0) seedCategories();
-                else updateCategoryUI();
+                
+                if(isFirstCatLoad) {
+                    isFirstCatLoad = false;
+                    if(categoriesData.length === 0) {
+                         seedCategories();
+                         return;
+                    }
+                }
+                updateCategoryUI();
             });
         }
 
@@ -674,12 +682,20 @@
             });
         }
 
+        let isFirstScriptLoad = true;
         function setupScriptListener() {
             onSnapshot(collection(db, SCRIPT_COLLECTION), (snapshot) => {
                 scriptsData = [];
                 snapshot.forEach(doc => scriptsData.push({ id: doc.id, ...doc.data() }));
-                if(scriptsData.length === 0) seedScripts();
-                else renderScriptList();
+                
+                if(isFirstScriptLoad) {
+                    isFirstScriptLoad = false;
+                    if(scriptsData.length === 0) {
+                        seedScripts();
+                        return;
+                    }
+                }
+                renderScriptList();
             });
         }
 
@@ -737,7 +753,6 @@
                 <ul class="space-y-1">${createMenuHTML(kbItems)}</ul>
             `;
             
-            // Highlight current view
             const activeView = document.querySelector('div[id^="view-"]:not(.hidden)')?.id?.replace('view-', '');
             if(activeView) {
                 const menuId = MENU_DEFS.find(m => m.view === activeView)?.id || activeView;
@@ -848,7 +863,6 @@
                 const catObj = categoriesData.find(c => c.name === item.category);
                 const badgeClass = colorMap[catObj ? catObj.color : 'gray'];
                 
-                // Conditional Rendering
                 const scriptHtml = (item.script && item.script.trim()) ? `
                     <div class="bg-blue-50 p-3 rounded border border-blue-100 text-blue-800 mt-4 mb-3">
                         <strong>Script ตอบลูกค้า:</strong> <span class="script-content">"${item.script}"</span>
@@ -895,7 +909,7 @@
         }
 
         // --- SCRIPT TEMPLATE LOGIC ---
-        window.renderScriptList = function(filter = 'all') {
+        function renderScriptList(filter = 'all') {
             const container = document.getElementById('script-list-container');
             if (!container) return;
 
@@ -943,9 +957,10 @@
             updateAdminVisibility();
         };
 
+        window.renderScriptList = renderScriptList;
+
         window.filterScripts = function(filter) {
-            window.renderScriptList(filter);
-            // Visual feedback for filter buttons could be added here
+            renderScriptList(filter);
         };
 
         window.saveScript = async function() {
@@ -989,7 +1004,6 @@
             currentEditingId = id;
             window.openModal('script-modal');
         };
-
 
         function updateDashboardUI() {
             const tbody = document.getElementById('recent-updates-body');
