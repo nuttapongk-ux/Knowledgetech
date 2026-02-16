@@ -446,6 +446,10 @@
                         </div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">รายชื่อหมวดหมู่ปัจจุบัน</label>
                         <ul id="category-list" class="divide-y divide-slate-100 max-h-60 overflow-y-auto"></ul>
+                        <!-- Restore Button -->
+                         <div class="mt-4 pt-4 border-t border-slate-100">
+                            <button onclick="seedCategories()" class="text-xs text-blue-500 hover:underline">คืนค่าหมวดหมู่เริ่มต้น (Restore Defaults)</button>
+                         </div>
                     </div>
                     <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-100">
                         <button type="button" onclick="closeModal('category-modal')" class="inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto">ปิดหน้าต่าง</button>
@@ -495,6 +499,7 @@
 
         // Global functions defined first
         window.switchView = function(viewName) {
+            // Check visibility config via function to handle roles
             if (!canAccessView(viewName)) {
                 window.showToast("เมนูนี้ถูกปิดใช้งาน (Admin Only)");
                 return;
@@ -508,6 +513,7 @@
             const selectedEl = document.getElementById('view-' + viewName);
             if (selectedEl) selectedEl.classList.remove('hidden');
 
+            // Highlight Logic
             document.querySelectorAll('nav a').forEach(a => {
                 a.classList.remove('sidebar-item-active', 'text-blue-600');
                 a.classList.add('text-slate-600');
@@ -527,10 +533,10 @@
 
         function canAccessView(viewName) {
             const menu = MENU_DEFS.find(m => m.view === viewName);
-            if (!menu) return true;
+            if (!menu) return true; // allow unknown views?
             const isEnabled = window.menuConfig[menu.id] !== false;
             const isAdmin = document.body.classList.contains('role-admin');
-            return isEnabled || isAdmin;
+            return isEnabled || isAdmin; // Admin can access everything
         }
 
         window.showToast = function(message) {
@@ -656,18 +662,15 @@
             });
         }
 
-        let isFirstCatLoad = true;
+        // Removed isFirstCatLoad check to disable auto-seeding on empty
         function setupCategoryListener() {
             onSnapshot(collection(db, CAT_COLLECTION), (snapshot) => {
                 categoriesData = [];
                 snapshot.forEach(doc => categoriesData.push({ id: doc.id, ...doc.data() }));
-                
-                if(isFirstCatLoad) {
-                    isFirstCatLoad = false;
-                    if(categoriesData.length === 0) {
-                         seedCategories();
-                         return;
-                    }
+                // Manually trigger seed only if specifically requested or initial app setup, but here we disabled auto-seed on empty
+                if (categoriesData.length === 0 && !localStorage.getItem('kb_initialized')) {
+                    // seedCategories(); // Optional: Seed only once ever. 
+                    // localStorage.setItem('kb_initialized', 'true');
                 }
                 updateCategoryUI();
             });
@@ -690,9 +693,10 @@
                 
                 if(isFirstScriptLoad) {
                     isFirstScriptLoad = false;
-                    if(scriptsData.length === 0) {
+                    // Only seed if empty AND likely first run (optional), or just leave empty
+                    if(scriptsData.length === 0 && !localStorage.getItem('scripts_initialized')) {
                         seedScripts();
-                        return;
+                        localStorage.setItem('scripts_initialized', 'true');
                     }
                 }
                 renderScriptList();
@@ -708,16 +712,19 @@
             for (const s of seed) await addDoc(collection(db, SCRIPT_COLLECTION), { ...s, updatedAt: serverTimestamp() });
         }
 
-        async function seedCategories() {
-            const seed = [
-                { name: 'Internet/Network', color: 'blue', icon: 'fa-wifi' },
-                { name: 'Billing/Payment', color: 'red', icon: 'fa-file-invoice-dollar' },
-                { name: 'Hardware Setup', color: 'orange', icon: 'fa-laptop-code' },
-                { name: 'Account Security', color: 'purple', icon: 'fa-user-shield' },
-                { name: 'Software', color: 'green', icon: 'fa-cube' },
-                { name: 'Internal Policy', color: 'gray', icon: 'fa-book' }
-            ];
-            for (const c of seed) await addDoc(collection(db, CAT_COLLECTION), c);
+        window.seedCategories = async function() {
+             if(confirm("คุณต้องการคืนค่าหมวดหมู่เริ่มต้นหรือไม่? (หมวดหมู่ที่มีอยู่จะไม่หายไป)")) {
+                const seed = [
+                    { name: 'Internet/Network', color: 'blue', icon: 'fa-wifi' },
+                    { name: 'Billing/Payment', color: 'red', icon: 'fa-file-invoice-dollar' },
+                    { name: 'Hardware Setup', color: 'orange', icon: 'fa-laptop-code' },
+                    { name: 'Account Security', color: 'purple', icon: 'fa-user-shield' },
+                    { name: 'Software', color: 'green', icon: 'fa-cube' },
+                    { name: 'Internal Policy', color: 'gray', icon: 'fa-book' }
+                ];
+                for (const c of seed) await addDoc(collection(db, CAT_COLLECTION), c);
+                window.showToast("คืนค่าหมวดหมู่สำเร็จ");
+             }
         }
 
         function renderSidebar() {
@@ -1042,8 +1049,13 @@
         window.confirmRemoveCategory = function(id) {
             window.showConfirm('ลบหมวดหมู่', 'คุณต้องการลบหมวดหมู่นี้หรือไม่?', async () => {
                 if (!auth.currentUser) return;
-                await deleteDoc(doc(db, CAT_COLLECTION, id));
-                window.showToast('ลบหมวดหมู่แล้ว');
+                try {
+                    await deleteDoc(doc(db, CAT_COLLECTION, id));
+                    window.showToast('ลบหมวดหมู่แล้ว');
+                } catch (e) {
+                    console.error("Delete Error", e);
+                    window.showToast("เกิดข้อผิดพลาดในการลบ");
+                }
             });
         };
 
